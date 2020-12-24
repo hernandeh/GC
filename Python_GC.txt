@@ -1,0 +1,62 @@
+#Importar paquetes pandas y numpy
+import pandas as pd
+import numpy as np
+#importar informacion del Archivo General e Historico de Defensa.
+url = 'https://patrimoniocultural.defensa.gob.es/sites/default/files/2020-09/CAUSAS_JUDICIALES_TMT1_24SEP20_3.csv'
+data = pd.read_csv(url, delimiter=';',encoding = "ISO-8859-1", engine='python')
+
+#Convertir NaN en 0
+data[['Sumario','Año','Legajo','Caja','Orden']]=data[['Sumario','Año','Legajo','Caja','Orden']].fillna(0)
+#Convertir numeros a integer (sin decimales)
+data[['Sumario','Año','Legajo','Caja','Orden']]=data[['Sumario','Año','Legajo','Caja','Orden']].astype(int)
+#Crear codigo para comparacion de causas, sumando todos los identificadores como linea de caracteres.
+data['ID']=data['Sumario'].astype(str)+data['Año'].astype(str)+data['Legajo'].astype(str)+data['Caja'].astype(str)+data['Orden'].astype(str)
+
+#Introducir Nombre y Apellidos de la persona a buscar
+nombre=input('Nombre:')
+apellido1=input('Primer apellido:').upper()
+apellido2=input('Segundo apellido:').upper()
+#Combinar nombre y apellidos con el mismo formato que el CSV. APELLIDO1 APELLIDO2, Nombre.
+ncomp=apellido1+' '+apellido2+', '+nombre
+#Crear masks para filtrar los resultados. Mask1: mismo nombre, Mask2: mismo primer apellido, Mask3: mismo segundo apellido, Mask4: mismo nombre completo.
+mask1=data['Nombre']==nombre
+mask2=data['Primer apellido']==apellido1
+mask3=data['Segundo apellido']==apellido2
+mask4=data['Nombre completo']==ncomp
+#Almacenar resultados de los filtros de interes en variables.
+#Nombre completo: APELLIDO1 APELLIDO2, Nombre.
+res_ncomp=data[mask4]
+print(res_ncomp.shape[0],'expediente(s) con el nombre completo:', apellido1, apellido2,',',nombre)
+#Nombre completo: Nombre, Apellido1 y Apellido2 son iguales a las 3 columnas.
+res_na1a2=data[mask1][mask2][mask3]
+print(res_na1a2.shape[0], 'expediente(s) con nombre + primer apellido + segundo apellido:', nombre, apellido1, apellido2)
+#Nombre y primer apellido
+res_na1=data[mask1][mask2]
+print(res_na1.shape[0], 'expediente(s) con nombre + primer apellido:', nombre, apellido1,'XXXXXX')
+#Nombre y segundo apellido
+res_na2=data[mask1][mask3]
+print(res_na2.shape[0], 'expediente(s) con nombre + segundo apellido:', nombre, 'XXXXXX', apellido2)
+#Apellidos
+res_a1a2=data[mask2][mask3]
+print(res_a1a2.shape[0], 'expediente(s) con los mismos apellidos:', 'XXXXXX', apellido1, apellido2)
+
+#Extraer el identificador de cada expediente de las personas con los nombres y apellidos indicados.
+i=0
+temp=pd.DataFrame(data=None)
+juicios1=pd.DataFrame(data=None)
+while i<res_ncomp.shape[0]:
+    temp=data[data['ID']==res_ncomp['ID'].iloc[i]]
+    juicios1=juicios1.append(temp)
+    #print(data[data['ID']==temp]['Nombre completo'])
+    i=i+1
+
+#Imprimir cada sumario, legajo, caja, orden y año, y todas las personas juzgadas en dichos procedimientos.   
+valores=np.unique(juicios1['ID'])
+for id in valores:
+    sumario=data[data['ID']==id]['Sumario'].values[0]
+    legajo=data[data['ID']==id]['Legajo'].values[0]
+    caja=data[data['ID']==id]['Caja'].values[0]
+    orden=data[data['ID']==id]['Orden'].values[0]
+    ano=data[data['ID']==id]['Año'].values[0]
+    print('Sumario %s' %sumario if sumario!=0 else '','Legajo %s' %legajo if legajo!=0 else '', 'Caja %s' %caja if caja!=0 else '','Orden %s' %orden if orden!=0 else '','Año %s' %ano if ano!=0 else '')
+    print(data[data['ID']==id]['Nombre completo'])
